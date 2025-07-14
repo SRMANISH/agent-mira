@@ -7,9 +7,11 @@ const PriceEstimator = () => {
   const [price, setPrice] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 
   useEffect(() => {
-    axios.get('http://localhost:3000/api/price/locations')
+    axios.get(`${BACKEND_URL}/api/price/locations`)
       .then(res => setLocations(res.data))
       .catch(err => console.error('Failed to fetch locations:', err))
   }, [])
@@ -34,7 +36,7 @@ const PriceEstimator = () => {
     setPrice(null)
 
     try {
-      const res = await axios.post('http://localhost:3000/api/price/estimate', form)
+      const res = await axios.post(`${BACKEND_URL}/api/price/estimate`, form)
       if (typeof res.data.price === 'number') {
         setPrice(res.data.price)
       } else {
