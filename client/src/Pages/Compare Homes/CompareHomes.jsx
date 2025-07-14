@@ -16,6 +16,8 @@ const FindProperty = () => {
   const [saving, setSaving] = useState(null)
   const messagesEndRef = useRef(null)
   const navigate = useNavigate()
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -23,7 +25,7 @@ const FindProperty = () => {
 
   const getFallbackResults = async (partial) => {
     try {
-      const res = await axios.post('http://localhost:3000/api/properties/search', partial)
+      const res = await axios.post(`${BACKEND_URL}/api/properties/search`, partial)
       return res.data
     } catch {
       return []
@@ -60,7 +62,7 @@ const FindProperty = () => {
           data = await getFallbackResults({})
           message = `Showing all ${data.length} available properties.`
         } else {
-          const res = await axios.post('http://localhost:3000/api/properties/search', newFilters)
+          const res = await axios.post(`${BACKEND_URL}/api/properties/search`, newFilters)
           data = res.data
 
           if (data.length > 0) {
@@ -98,7 +100,7 @@ const FindProperty = () => {
   const handleSave = async (property) => {
     setSaving(property.id)
     try {
-      await axios.post('http://localhost:3000/api/saved', { ...property, propertyId: property.id })
+      await axios.post(`${BACKEND_URL}/api/saved`, { ...property, propertyId: property.id })
       setTimeout(() => setSaving(null), 600)
     } catch {
       setSaving(null)

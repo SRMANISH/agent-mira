@@ -3,10 +3,12 @@ import axios from 'axios'
 
 const Saved = () => {
   const [saved, setSaved] = useState([])
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 
   const fetchSaved = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/saved')
+      const res = await axios.get(`${BACKEND_URL}/api/saved`)
       setSaved(res.data || [])
     } catch (err) {
       console.error('Failed to fetch saved properties:', err)
@@ -15,7 +17,7 @@ const Saved = () => {
 
   const handleUnsave = async (id) => {
     try {
-      const res = await axios.delete(`http://localhost:3000/api/saved/${id}`)
+      const res = await axios.delete(`${BACKEND_URL}/api/saved/${id}`)
       if (res.status === 200) {
         setSaved(prev => prev.filter(p => p.id !== id))
       }

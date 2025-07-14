@@ -1,6 +1,8 @@
 import { Send, RefreshCcw, Star, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 
 const FindProperty = () => {
   const [messages, setMessages] = useState([
@@ -15,6 +17,7 @@ const FindProperty = () => {
     return saved ? JSON.parse(saved) : []
   })
   const [saving, setSaving] = useState(null)
+
   const [savedIds, setSavedIds] = useState(() => {
     const stored = localStorage.getItem('savedPropertyIds')
     return stored ? JSON.parse(stored) : []
@@ -29,7 +32,7 @@ const FindProperty = () => {
 
   const getAllResults = async () => {
     try {
-      const res = await axios.post('http://localhost:3000/api/properties/search', {})
+      const res = await axios.post(`${BACKEND_URL}/api/properties/search`, {})
       return res.data
     } catch {
       return []
@@ -38,7 +41,7 @@ const FindProperty = () => {
 
   const callOpenAI = async (userInput) => {
     try {
-      const res = await axios.post('http://localhost:3000/api/ask', { prompt: userInput.toLowerCase() })
+      const res = await axios.post(`${BACKEND_URL}/api/ask`, { prompt: userInput.toLowerCase() })
       return res.data.filters
     } catch {
       return {}
@@ -182,9 +185,10 @@ const FindProperty = () => {
     localStorage.setItem('savedPropertyIds', JSON.stringify(updatedIds))
     try {
       if (savedIds.includes(id)) {
-        await axios.delete(`http://localhost:3000/api/saved/${id}`)
+        await axios.delete(`${BACKEND_URL}/api/saved/${id}`)
       } else {
-        await axios.post('http://localhost:3000/api/saved', { id })
+        await axios.post(`${BACKEND_URL}/api/saved`, { id })
+
       }
     } catch { }
   }
