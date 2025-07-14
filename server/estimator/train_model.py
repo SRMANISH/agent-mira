@@ -6,7 +6,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 
-with open("../server/data/property_basics.json") as f1, open("../server/data/property_characteristics.json") as f2:
+with open("../data/property_basics.json") as f1, open("../data/property_characteristics.json") as f2:
     price_data = {item['id']: item for item in json.load(f1)}
     detail_data = {item['id']: item for item in json.load(f2)}
 

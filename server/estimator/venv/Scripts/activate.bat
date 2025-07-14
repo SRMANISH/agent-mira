@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\manis\Pictures\real_estate\real_estate\estimator\venv
+set VIRTUAL_ENV=C:\Users\manis\Documents\agent-mira\server\estimator\venv
 
 if not defined PROMPT set PROMPT=$P$G
 
