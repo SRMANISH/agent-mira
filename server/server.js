@@ -4,25 +4,9 @@ const cors = require('cors')
 const dotenv = require('dotenv')
 const path = require('path')
 const fs = require('fs')
-const { spawn } = require('child_process')
 
 dotenv.config()
 const app = express()
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://your-vercel-app.vercel.app'
-]
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      console.log('❌ Blocked by CORS:', origin)
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true
-}))
 
 app.use(express.json())
 app.use(cors())
