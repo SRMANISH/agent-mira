@@ -8,8 +8,8 @@ const router = express.Router()
 // POST /api/price/estimate → call Python model
 router.post('/estimate', (req, res) => {
   const { location, area, bedrooms, bathrooms } = req.body
-  const scriptPath = path.resolve(__dirname, '../estimator/main.py')
-  const pythonPath = process.platform === 'win32' ? 'python' : 'python3'
+  const scriptPath = path.resolve(__dirname, '../../estimator/main.py')
+  const pythonPath = 'C:/Users/manis/Pictures/real_estate/real_estate/estimator/venv/Scripts/python.exe'
 
   console.log('📤 Incoming request:')
   console.log('  Location:', location)
