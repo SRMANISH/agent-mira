@@ -9,7 +9,7 @@ const router = express.Router()
 router.post('/estimate', (req, res) => {
   const { location, area, bedrooms, bathrooms } = req.body
   const scriptPath = path.resolve(__dirname, '../../estimator/main.py')
-  const pythonPath = 'C:/Users/manis/Pictures/real_estate/real_estate/estimator/venv/Scripts/python.exe'
+  const pythonPath = process.platform === 'win32' ? 'python' : 'python3'
 
   console.log('📤 Incoming request:')
   console.log('  Location:', location)
@@ -17,7 +17,7 @@ router.post('/estimate', (req, res) => {
   console.log('  Bedrooms:', bedrooms)
   console.log('  Bathrooms:', bathrooms)
 
-  const py = spawn(pythonPath, [scriptPath, location, area, bedrooms, bathrooms])
+const py = spawn(pythonPath, [scriptPath, location, area, bedrooms, bathrooms])
 
   let result = ''
 
