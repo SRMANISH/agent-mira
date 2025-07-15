@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
+
 const PriceEstimator = () => {
   const [form, setForm] = useState({ location: '', area: '', bedrooms: '', bathrooms: '' })
   const [locations, setLocations] = useState([])

@@ -2,6 +2,7 @@ import { Send, RefreshCcw, Star, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+console.log("🔗 Backend URL:", BACKEND_URL)
 
 
 const FindProperty = () => {
@@ -29,7 +30,7 @@ const FindProperty = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
-
+  
   const getAllResults = async () => {
     try {
       const res = await axios.post(`${BACKEND_URL}/api/properties/search`, {})

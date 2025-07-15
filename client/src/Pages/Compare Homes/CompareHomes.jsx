@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 
+
 const FindProperty = () => {
   const [messages, setMessages] = useState([
     { from: 'bot', text: 'Welcome! I can help you find a property.' },
