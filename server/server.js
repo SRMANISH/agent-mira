@@ -12,6 +12,7 @@ app.use(express.json())
 app.use(cors())
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/price', require('./routes/price'))
+app.use('/api/ask', require('./routes/ask'));
 
 
 mongoose.connect(process.env.MONGO_URI, {

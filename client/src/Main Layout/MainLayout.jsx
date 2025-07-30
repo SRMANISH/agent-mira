@@ -5,7 +5,7 @@ import FindProperty from "../Pages/Find Property/FindProperty"
 import CompareHomes from "../Pages/Compare Homes/CompareHomes"
 import PriceEstimator from "../Pages/Price Estimator/PriceEstimator"
 import Header from "../Components/Header"
-import Saved from "../Pages/Saved/Saved" 
+import Saved from "../Pages/Saved/Saved"
 
 const MainLayout = () => {
   return (
@@ -16,7 +16,7 @@ const MainLayout = () => {
         <Route path="/find-property" element={<FindProperty />} />
         <Route path="/compare-homes" element={<CompareHomes />} />
         <Route path="/price-estimator" element={<PriceEstimator />} />
-        <Route path="/saved" element={<Saved />} /> 
+        <Route path="/saved" element={<Saved />} />
       </Routes>
       <Footer />
     </BrowserRouter>

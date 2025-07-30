@@ -1,10 +1,10 @@
-import { Send, RefreshCcw, Star } from 'lucide-react'
+import { Send, RefreshCcw, Star, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
 
 
 const FindProperty = () => {
+  console.log('CompareHomes component mounted');
   const [messages, setMessages] = useState([
     { from: 'bot', text: 'Welcome! I can help you find a property.' },
     { from: 'bot', text: 'What city are you looking in?' }
@@ -15,8 +15,9 @@ const FindProperty = () => {
   const [results, setResults] = useState([])
   const [compare, setCompare] = useState([])
   const [saving, setSaving] = useState(null)
+  const [savedIds, setSavedIds] = useState([])
+  const [showModal, setShowModal] = useState(false)
   const messagesEndRef = useRef(null)
-  const navigate = useNavigate()
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
 
@@ -30,6 +31,16 @@ const FindProperty = () => {
       return res.data
     } catch {
       return []
+    }
+  }
+
+  const fetchSavedProperties = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/saved`)
+      const savedPropertyIds = res.data.map(property => property.id)
+      setSavedIds(savedPropertyIds)
+    } catch (error) {
+      console.error('Error fetching saved properties:', error)
     }
   }
 
@@ -99,12 +110,22 @@ const FindProperty = () => {
   }
 
   const handleSave = async (property) => {
-    setSaving(property.id)
+    const id = property.id
+    setSaving(id)
     try {
-      await axios.post(`${BACKEND_URL}/api/saved`, { ...property, propertyId: property.id })
+      if (savedIds.includes(id)) {
+        // Unsave
+        await axios.delete(`${BACKEND_URL}/api/saved/${id}`)
+        setSavedIds(prev => prev.filter(savedId => savedId !== id))
+      } else {
+        // Save
+        await axios.post(`${BACKEND_URL}/api/saved`, { id })
+        setSavedIds(prev => [...prev, id])
+      }
+    } catch (error) {
+      console.error('Error saving/unsaving property:', error)
+    } finally {
       setTimeout(() => setSaving(null), 600)
-    } catch {
-      setSaving(null)
     }
   }
 
@@ -141,6 +162,12 @@ const FindProperty = () => {
     localStorage.setItem('compareProperties', JSON.stringify(compare))
   }, [compare])
 
+  useEffect(() => {
+    fetchSavedProperties()
+  }, [])
+
+
+
   return (
     <div className="p-4 md:p-6 flex flex-col items-center gap-6 min-h-screen">
       <h1 className="text-3xl font-bold">Find Your Dream Property</h1>
@@ -173,6 +200,8 @@ const FindProperty = () => {
           </button>
         </div>
       </div>
+
+
 
       {results.length > 0 && (
         <div className="w-full max-w-4xl relative">
@@ -211,7 +240,10 @@ const FindProperty = () => {
             <div className="fixed bottom-6 right-6 z-50">
               <button
                 className="btn btn-accent shadow-lg"
-                onClick={handleCompareOpen}
+                onClick={() => {
+                  console.log('Compare button clicked');
+                  setShowModal(true);
+                }}
                 disabled={compare.length < 2}
                 style={{ pointerEvents: compare.length < 2 ? 'none' : 'auto', opacity: compare.length < 2 ? 0.5 : 1 }}
               >
@@ -219,6 +251,30 @@ const FindProperty = () => {
               </button>
             </div>
           ) : null}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+          <div className="relative bg-white max-h-[90vh] overflow-y-auto w-full max-w-4xl p-6 rounded-lg">
+            <button className="sticky top-2 right-2 float-right btn btn-sm btn-circle btn-error z-10" onClick={() => setShowModal(false)}>
+              <X />
+            </button>
+            <h2 className="text-xl font-bold mb-4 clear-both">Compare Properties</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {compare.map(p => (
+                <div key={p.id} className="card bg-base-100 shadow-md">
+                  <figure><img src={p.image_url} alt={p.title} className="w-full h-40 object-cover" /></figure>
+                  <div className="card-body text-sm">
+                    <h3 className="card-title text-base">{p.title}</h3>
+                    <p>{p.location}</p>
+                    <p>₹{p.price.toLocaleString()}</p>
+                    <p>{p.bedrooms} BHK | {p.bathrooms} Bath | {p.size_sqft} sqft</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

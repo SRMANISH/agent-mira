@@ -7,8 +7,7 @@ console.log("🔗 Backend URL:", BACKEND_URL)
 
 const FindProperty = () => {
   const [messages, setMessages] = useState([
-    { from: 'bot', text: 'Welcome! I can help you find a property.' },
-    { from: 'bot', text: 'What city are you looking in?' }
+    { from: 'bot', text: 'Welcome! I can help you find a property.' }
   ])
   const [step, setStep] = useState(0)
   const [input, setInput] = useState('')
@@ -19,10 +18,7 @@ const FindProperty = () => {
   })
   const [saving, setSaving] = useState(null)
 
-  const [savedIds, setSavedIds] = useState(() => {
-    const stored = localStorage.getItem('savedPropertyIds')
-    return stored ? JSON.parse(stored) : []
-  })
+  const [savedIds, setSavedIds] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [categorizedResults, setCategorizedResults] = useState({})
   const messagesEndRef = useRef(null)
@@ -40,12 +36,25 @@ const FindProperty = () => {
     }
   }
 
+  const fetchSavedProperties = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/saved`)
+      const savedPropertyIds = res.data.map(property => property.id)
+      setSavedIds(savedPropertyIds)
+    } catch (error) {
+      console.error('Error fetching saved properties:', error)
+    }
+  }
+
   const callOpenAI = async (userInput) => {
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/ask`, { prompt: userInput.toLowerCase() })
-      return res.data.filters
+      const res = await axios.post(`${BACKEND_URL}/api/ask`, {
+        prompt: userInput.toLowerCase(),
+        history: messages.slice(-10)
+      })
+      return res.data // { message, filters }
     } catch {
-      return {}
+      return { message: 'Sorry, I could not process your request.', filters: {} }
     }
   }
 
@@ -56,7 +65,7 @@ const FindProperty = () => {
     if (normalized === 'all' || normalized === 'all properties') {
       const all = await getAllResults()
       setCategorizedResults({ all })
-      setMessages(prev => [...prev, { from: 'user', text: input }, { from: 'bot', text: `Showing all ${all.length} available properties.` }])
+      setMessages(prev => [...prev, { from: 'user', text: input }])
       setStep(3)
       setInput('')
       return
@@ -64,9 +73,15 @@ const FindProperty = () => {
 
     setMessages(prev => [...prev, { from: 'user', text: input }])
 
-    const filtersFromAI = await callOpenAI(input)
+    const aiResponse = await callOpenAI(input)
+    const filtersFromAI = aiResponse.filters || {}
+    const aiMessage = aiResponse.message || ''
 
-    if (Object.keys(filtersFromAI).length > 0) {
+    if (aiMessage) {
+      setMessages(prev => [...prev, { from: 'bot', text: aiMessage }])
+    }
+
+    if (Object.keys(filtersFromAI).length > 0 && Object.values(filtersFromAI).some(Boolean)) {
       const combinedFilters = {
         location: filtersFromAI.location || filters.location,
         bedrooms: filtersFromAI.bedrooms || filters.bedrooms,
@@ -75,13 +90,6 @@ const FindProperty = () => {
 
       setFilters(combinedFilters)
       await categorizeAndDisplay(combinedFilters)
-      setMessages(prev => [
-        ...prev,
-        {
-          from: 'bot',
-          text: `Got it! Searching${combinedFilters.bedrooms ? ` for ${combinedFilters.bedrooms} BHK` : ''}${combinedFilters.location ? ` in ${combinedFilters.location}` : ''}${combinedFilters.budget ? ` under ₹${combinedFilters.budget}` : ''}...`
-        }
-      ])
       setStep(3)
       setInput('')
       return
@@ -104,13 +112,6 @@ const FindProperty = () => {
 
       setFilters(fallbackFilters)
       await categorizeAndDisplay(fallbackFilters)
-      setMessages(prev => [
-        ...prev,
-        {
-          from: 'bot',
-          text: `Got it! Searching${fallbackFilters.bedrooms ? ` for ${fallbackFilters.bedrooms} BHK` : ''}${fallbackFilters.location ? ` in ${fallbackFilters.location}` : ''}${fallbackFilters.budget ? ` under ₹${fallbackFilters.budget}` : ''}...`
-        }
-      ])
       setStep(3)
       setInput('')
       return
@@ -120,15 +121,12 @@ const FindProperty = () => {
 
     if (step === 0) {
       newFilters.location = input
-      setMessages(prev => [...prev, { from: 'bot', text: 'How many bedrooms do you need?' }])
       setStep(1)
     } else if (step === 1) {
       newFilters.bedrooms = input
-      setMessages(prev => [...prev, { from: 'bot', text: 'What is your budget?' }])
       setStep(2)
     } else if (step === 2) {
       newFilters.budget = input
-      setMessages(prev => [...prev, { from: 'bot', text: 'Searching based on your filters...' }])
       await categorizeAndDisplay(newFilters)
       setStep(3)
     }
@@ -137,61 +135,70 @@ const FindProperty = () => {
     setInput('')
   }
 
-  const categorizeAndDisplay = async ({ location, bedrooms, budget }) => {
-    const all = await getAllResults()
+  const parseFilterList = (value) => {
+    if (!value) return [];
+    return value.split(/[;,]/).map(v => v.trim()).filter(Boolean);
+  };
 
-    const loc = location?.toLowerCase().trim()
-    const bed = parseInt(bedrooms)
-    const bud = parseInt(budget)
+  const categorizeAndDisplay = async ({ location, bedrooms, budget }) => {
+    const all = await getAllResults();
+
+    // Support multiple values for each filter
+    const locList = parseFilterList(location?.toLowerCase());
+    const bedList = parseFilterList(bedrooms);
+    const budList = parseFilterList(budget);
 
     const cat1 = all.filter(p =>
-      loc && bed &&
-      p.location.toLowerCase().includes(loc) &&
-      parseInt(p.bedrooms) === bed
-    )
+      locList.length && bedList.length &&
+      locList.some(loc => p.location.toLowerCase().includes(loc)) &&
+      bedList.some(bed => parseInt(p.bedrooms) === parseInt(bed))
+    );
 
     const cat2 = all.filter(p =>
-      loc && p.location.toLowerCase().includes(loc)
-    )
+      locList.length && locList.some(loc => p.location.toLowerCase().includes(loc))
+    );
 
     const cat3 = all.filter(p =>
-      bed && parseInt(p.bedrooms) === bed
-    )
+      bedList.length && bedList.some(bed => parseInt(p.bedrooms) === parseInt(bed))
+    );
 
     const cat4 = all.filter(p =>
-      bud && parseInt(p.price) <= bud
-    )
+      budList.length && budList.some(bud => parseInt(p.price) <= parseInt(bud))
+    );
 
-    const allEmpty = cat1.length + cat2.length + cat3.length + cat4.length === 0
+    const allEmpty = cat1.length + cat2.length + cat3.length + cat4.length === 0;
 
     if (allEmpty) {
-      const all = await getAllResults()
-      setCategorizedResults({ all })
-      setMessages(prev => [...prev, { from: 'bot', text: 'No matching properties found. Showing all instead.' }])
+      const all = await getAllResults();
+      setCategorizedResults({ all });
     } else {
       setCategorizedResults({
         'Location & Bedrooms': cat1,
         'Location Only': cat2,
         'Bedrooms Only': cat3,
         'Within Budget': cat4
-      })
-      setMessages(prev => [...prev, { from: 'bot', text: 'Check properties categorized by your preferences below.' }])
+      });
     }
-  }
+  };
 
   const handleSave = async (property) => {
     const id = property.id
-    const updatedIds = savedIds.includes(id) ? savedIds.filter(savedId => savedId !== id) : [...savedIds, id]
-    setSavedIds(updatedIds)
-    localStorage.setItem('savedPropertyIds', JSON.stringify(updatedIds))
+    setSaving(id)
     try {
       if (savedIds.includes(id)) {
+        // Unsave
         await axios.delete(`${BACKEND_URL}/api/saved/${id}`)
+        setSavedIds(prev => prev.filter(savedId => savedId !== id))
       } else {
+        // Save
         await axios.post(`${BACKEND_URL}/api/saved`, { id })
-
+        setSavedIds(prev => [...prev, id])
       }
-    } catch { }
+    } catch (error) {
+      console.error('Error saving/unsaving property:', error)
+    } finally {
+      setTimeout(() => setSaving(null), 600)
+    }
   }
 
   const handleCompareToggle = (property) => {
@@ -204,8 +211,7 @@ const FindProperty = () => {
 
   const resetChat = () => {
     setMessages([
-      { from: 'bot', text: 'Welcome! I can help you find a property.' },
-      { from: 'bot', text: 'What city are you looking in?' }
+      { from: 'bot', text: 'Welcome! I can help you find a property.' }
     ])
     setStep(0)
     setFilters({ location: '', bedrooms: '', budget: '' })
@@ -221,6 +227,12 @@ const FindProperty = () => {
   useEffect(() => {
     localStorage.setItem('compareProperties', JSON.stringify(compare))
   }, [compare])
+
+  useEffect(() => {
+    fetchSavedProperties()
+  }, [])
+
+
 
   return (
     <div className="p-4 md:p-6 flex flex-col items-center gap-6 min-h-screen page-body">
@@ -270,7 +282,7 @@ const FindProperty = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {list.map(p => (
-                  <div key={p.id} className="card bg-base-100 shadow-md">
+                  <div key={p.id} className="card bg-base-100 shadow-md hover:shadow-xl transition">
                     <figure><img src={p.image_url} alt={p.title} className="w-full h-52 object-cover" /></figure>
                     <div className="card-body">
                       <h2 className="card-title">{p.title}</h2>
@@ -278,13 +290,13 @@ const FindProperty = () => {
                       <p>₹{p.price.toLocaleString()}</p>
                       <p>{p.bedrooms} BHK | {p.bathrooms} Bath | {p.size_sqft} sqft</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <input type="checkbox" className="checkbox checkbox-sm" checked={compare.some(c => c.id === p.id)} onChange={() => handleCompareToggle(p)} />
+                        <input type="checkbox" className="checkbox checkbox-sm" checked={compare.some(c => c.id === p.id)} onClick={e => e.stopPropagation()} onChange={() => handleCompareToggle(p)} />
                         <span className="text-sm">Compare</span>
                         <button
-                          className={`btn btn-sm ml-auto ${savedIds.includes(p.id) ? 'btn-success' : 'btn-outline'}`}
-                          onClick={() => handleSave(p)}
+                          className={`btn btn-sm ml-auto ${saving === p.id ? 'btn-success animate-bounce' : savedIds.includes(p.id) ? 'btn-success' : 'btn-outline'}`}
+                          onClick={e => { e.stopPropagation(); handleSave(p); }}
                         >
-                          <Star size={16} /> {savedIds.includes(p.id) ? 'Unsave' : 'Save'}
+                          <Star size={16} /> {saving === p.id ? 'Saved' : savedIds.includes(p.id) ? 'Unsave' : 'Save'}
                         </button>
                       </div>
                     </div>
