@@ -7,7 +7,7 @@
     "server": "node server.js",
     "client": "cd ../client && npm run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "start": "nodemon server.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
